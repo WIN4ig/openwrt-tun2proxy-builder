@@ -1,0 +1,38 @@
+name: Build tun2proxy OpenWrt package
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download OpenWrt SDK
+      run: |
+        wget https://downloads.openwrt.org/releases/23.05.3/targets/mediatek/filogic/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        tar xf openwrt-sdk-*.tar.xz
+        mv openwrt-sdk-* sdk
+
+    - name: Prepare SDK and package
+      run: |
+        cd sdk
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        mkdir -p package/tun2proxy
+        cp ../Makefile package/tun2proxy/Makefile
+        make defconfig
+
+    - name: Compile package
+      run: |
+        cd sdk
+        make package/tun2proxy/compile -j$(nproc) V=s
+
+    - name: Upload .ipk artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tun2proxy-ipk
+        path: sdk/bin/packages/*/*/*.ipk
