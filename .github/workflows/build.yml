@@ -11,6 +11,10 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
+    - name: Clone tun2proxy repository
+      run: |
+        git clone https://github.com/tun2proxy/tun2proxy.git ./tun2proxy
+
     - name: Install dependencies
       run: |
         sudo apt update
