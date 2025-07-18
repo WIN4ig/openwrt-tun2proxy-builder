@@ -29,6 +29,10 @@ jobs:
         mkdir sdk
         tar --use-compress-program=unzstd -xf openwrt-sdk-24.10.1-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst -C sdk --strip-components=1
 
+    - name: Modify feeds.conf.default
+      run: |
+        sed -i '/telephony/d' sdk/feeds.conf.default
+
     - name: Add tun2proxy package to SDK
       run: |
         cp -r ./tun2proxy sdk/package/
@@ -50,9 +54,14 @@ jobs:
 
     - name: Rename artifact with OpenWrt version
       run: |
-        ARCH=$(basename $(ls -d sdk/bin/packages/*/ | head -n 1))
-        IPK=$(find sdk/bin/packages -name "tun2proxy_*.ipk")
-        cp "$IPK" "tun2proxy_${ARCH}_openwrt-24.10.1.ipk"
+        if [ -d "sdk/bin/packages" ]; then
+          ARCH=$(basename $(ls -d sdk/bin/packages/*/ | head -n 1))
+          IPK=$(find sdk/bin/packages -name "tun2proxy_*.ipk")
+          cp "$IPK" "tun2proxy_${ARCH}_openwrt-24.10.1.ipk"
+        else
+          echo "No packages directory found, skipping rename."
+          exit 1
+        fi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
