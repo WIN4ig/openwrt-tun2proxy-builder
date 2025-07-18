@@ -32,6 +32,8 @@ jobs:
     - name: Modify feeds.conf.default
       run: |
         sed -i '/telephony/d' sdk/feeds.conf.default
+        sed -i 's|https://git.openwrt.org/openwrt/openwrt.git|https://github.com/openwrt/openwrt.git|' sdk/feeds.conf.default
+        sed -i 's|https://git.openwrt.org/feed/packages.git|https://github.com/openwrt/packages.git|' sdk/feeds.conf.default
 
     - name: Add tun2proxy package to SDK
       run: |
