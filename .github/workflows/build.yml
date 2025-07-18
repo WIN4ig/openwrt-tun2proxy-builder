@@ -35,13 +35,18 @@ jobs:
         echo "src-link tun2proxy $(pwd)/sdk/package/tun2proxy" >> sdk/feeds.conf.default
 
     - name: Build tun2proxy
-      run: |
-        pushd sdk
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-        make defconfig
-        make package/tun2proxy/compile V=s
-        popd
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 60
+        max_attempts: 3
+        retry_on: error
+        command: |
+          pushd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          make package/tun2proxy/compile V=s
+          popd
 
     - name: Rename artifact with OpenWrt version
       run: |
