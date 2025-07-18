@@ -13,6 +13,7 @@ jobs:
 
     - name: Clone tun2proxy repository
       run: |
+        rm -rf ./tun2proxy
         git clone https://github.com/tun2proxy/tun2proxy.git ./tun2proxy
 
     - name: Install dependencies
