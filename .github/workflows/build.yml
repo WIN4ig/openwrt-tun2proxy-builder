@@ -24,13 +24,14 @@ jobs:
           file wget python3 python3-pip xz-utils libpthread-stubs0-dev
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         source $HOME/.cargo/env
-        cargo install cargo
 
     - name: Build tun2proxy binary
       run: |
         cd tun2proxy
         cargo build --release
         ls -la target/release/
+        cp target/release/tun2proxy tun2proxy-bin
+        ls -la
         cd ..
 
     - name: Download OpenWrt SDK
@@ -50,4 +51,37 @@ jobs:
         cp -r ./tun2proxy sdk/package/
         echo "src-link tun2proxy $(pwd)/sdk/package/tun2proxy" >> sdk/feeds.conf.default
 
-   
+    - name: Build tun2proxy
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 60
+        max_attempts: 3
+        retry_on: error
+        command: |
+          pushd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          make package/tun2proxy/compile V=s
+          if [ -d "logs/package/tun2proxy" ]; then
+            echo "Build logs for tun2proxy:"
+            cat logs/package/tun2proxy/*
+          fi
+          popd
+
+    - name: Rename artifact with OpenWrt version
+      run: |
+        if [ -d "sdk/bin/packages" ]; then
+          ARCH=$(basename $(ls -d sdk/bin/packages/*/ | head -n 1))
+          IPK=$(find sdk/bin/packages -name "tun2proxy_*.ipk")
+          cp "$IPK" "tun2proxy_${ARCH}_openwrt-24.10.1.ipk"
+        else
+          echo "No packages directory found, skipping rename."
+          exit 1
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tun2proxy_openwrt-24.10.1
+        path: tun2proxy_*_openwrt-24.10.1.ipk
