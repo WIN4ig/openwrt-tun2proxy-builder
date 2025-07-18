@@ -1,38 +1,41 @@
-name: Build tun2proxy OpenWrt package
+name: Build tun2proxy for OpenWrt
 
 on:
-  push:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v3
 
-    - name: Download OpenWrt SDK
-      run: |
-        wget https://downloads.openwrt.org/releases/23.05.3/targets/mediatek/filogic/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-        tar xf openwrt-sdk-*.tar.xz
-        mv openwrt-sdk-* sdk
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget
 
-    - name: Prepare SDK and package
-      run: |
-        cd sdk
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-        mkdir -p package/tun2proxy
-        cp ../Makefile package/tun2proxy/Makefile
-        make defconfig
+      - name: Download OpenWrt SDK
+        run: |
+          wget https://downloads.openwrt.org/releases/23.05.3/targets/mediatek/filogic/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          tar -xf openwrt-sdk-*.tar.xz
+          SDKDIR=$(find . -maxdepth 1 -type d -name "openwrt-sdk-*")
+          mv "$SDKDIR" sdk
 
-    - name: Compile package
-      run: |
-        cd sdk
-        make package/tun2proxy/compile -j$(nproc) V=s
+      - name: Copy tun2proxy into SDK
+        run: |
+          mkdir -p sdk/package/tun2proxy
+          cp -r ./* sdk/package/tun2proxy
 
-    - name: Upload .ipk artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: tun2proxy-ipk
-        path: sdk/bin/packages/*/*/*.ipk
+      - name: Build tun2proxy
+        run: |
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          make package/tun2proxy/compile V=s
+
+      - name: Upload compiled IPK
+        uses: actions/upload-artifact@v3
+        with:
+          name: tun2proxy_ipk
+          path: |
+            sdk/bin/packages/*/*/tun2proxy_*.ipk
