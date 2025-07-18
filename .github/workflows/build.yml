@@ -1,4 +1,4 @@
-name: Build tun2proxy for OpenWrt
+name: Build tun2proxy for OpenWrt 24.10.1 (mediatek/filogic)
 
 on:
   workflow_dispatch:
@@ -6,33 +6,46 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-setuptools python3-pip rsync unzip zlib1g-dev file wget
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential clang flex g++ gawk gcc-multilib \
+          gettext git libncurses-dev libssl-dev python3-distutils unzip zlib1g-dev \
+          file wget python3 python3-pip xz-utils
 
-      - name: Download OpenWrt SDK
-        run: |
-          wget https://downloads.openwrt.org/releases/23.05.3/targets/mediatek/filogic/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-          tar -xf openwrt-sdk-*.tar.xz
-          mv openwrt-sdk-* sdk
+    - name: Download OpenWrt SDK
+      run: |
+        wget https://downloads.openwrt.org/releases/24.10.1/targets/mediatek/filogic/openwrt-sdk-24.10.1-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        mkdir sdk
+        tar --use-compress-program=unzstd -xf openwrt-sdk-24.10.1-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst -C sdk --strip-components=1
 
-      - name: Copy tun2proxy into SDK
-        run: |
-          mkdir -p sdk/package/tun2proxy
-          cp -r ./* sdk/package/tun2proxy
+    - name: Add tun2proxy package to SDK
+      run: |
+        cp -r ./tun2proxy sdk/package/
+        echo "src-link tun2proxy $(pwd)/sdk/package/tun2proxy" >> sdk/feeds.conf.default
 
-      - name: Build tun2proxy
-        run: |
-          cd sdk
-          make defconfig
-          make package/tun2proxy/compile V=s
+    - name: Build tun2proxy
+      run: |
+        pushd sdk
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        make defconfig
+        make package/tun2proxy/compile V=s
+        popd
 
-      - name: Upload compiled IPK
-        uses: actions/upload-artifact@v4
-        with:
-          name: tun2proxy_ipk
-          path: |
-            sdk/bin/packages/*/*/tun2proxy_*.ipk
+    - name: Rename artifact with OpenWrt version
+      run: |
+        ARCH=$(basename $(ls -d sdk/bin/packages/*/ | head -n 1))
+        IPK=$(find sdk/bin/packages -name "tun2proxy_*.ipk")
+        cp "$IPK" "tun2proxy_${ARCH}_openwrt-24.10.1.ipk"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tun2proxy_openwrt-24.10.1
+        path: tun2proxy_*_openwrt-24.10.1.ipk
