@@ -17,8 +17,7 @@ jobs:
         run: |
           wget https://downloads.openwrt.org/releases/23.05.3/targets/mediatek/filogic/openwrt-sdk-23.05.3-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar -xf openwrt-sdk-*.tar.xz
-          SDKDIR=$(find . -maxdepth 1 -type d -name "openwrt-sdk-*")
-          mv "$SDKDIR" sdk
+          mv openwrt-sdk-* sdk
 
       - name: Copy tun2proxy into SDK
         run: |
@@ -28,13 +27,11 @@ jobs:
       - name: Build tun2proxy
         run: |
           cd sdk
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
           make defconfig
           make package/tun2proxy/compile V=s
 
       - name: Upload compiled IPK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tun2proxy_ipk
           path: |
