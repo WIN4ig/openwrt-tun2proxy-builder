@@ -19,9 +19,16 @@ define Package/tun2proxy
   DEPENDS:=+kmod-tun +libpthread
 endef
 
+define Build/Prepare
+    $(call Build/Prepare/Default)
+    (cd $(PKG_BUILD_DIR); \
+        cargo build --release; \
+    )
+endef
+
 define Package/tun2proxy/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(CP) $(PKG_BUILD_DIR)/tun2proxy-bin $(1)/usr/bin/
+    $(INSTALL_DIR) $(1)/usr/bin
+    $(INSTALL_BIN) $(PKG_BUILD_DIR)/target/release/tun2proxy-bin $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,tun2proxy))
